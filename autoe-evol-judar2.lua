@@ -58,6 +58,61 @@ local function getUnitsOwner()
     return {}
 end
 
+-- **Get Inventory Items**
+local function getInventoryItems()
+    return ItemInventoryServiceClient["session"]["inventory"]["inventory_profile_data"]["normal_items"]
+end
+
+-- **Count Judar Units**
+local function countJudarUnits()
+    local owned_units = getUnitsOwner()
+    local count = 0
+
+    for _, unit in pairs(owned_units) do
+        if unit["unit_id"] == "judar" then
+            count = count + 1
+        end
+    end
+
+    return count
+end
+
+-- **Count Judar Spears**
+local function countJudarSpears()
+    local inventory = getInventoryItems()
+    return inventory["judar_spear"] or 0
+end
+
+-- **Buy a Judar Spear**
+local function buyJudarSpear()
+    local args = {
+        [1] = "judar_spear",
+        [2] = "event",
+        [3] = "event_shop",
+        [4] = "1"
+    }
+    ReplicatedStorage.endpoints.client_to_server.buy_item_generic:InvokeServer(unpack(args))
+    print("Purchased 1 Judar Spear.")
+end
+
+-- **Ensure Enough Judar Spears**
+local function ensureJudarSpears()
+    local judarCount = countJudarUnits()
+    local judarSpearCount = countJudarSpears()
+
+    print(string.format("Judar units: %d | Judar Spears: %d", judarCount, judarSpearCount))
+
+    while judarSpearCount < judarCount do
+        print("Buying 1 Judar Spear...")
+        buyJudarSpear()
+        task.wait(1) -- Prevent spamming
+        judarSpearCount = countJudarSpears() -- Update count after buying
+        print(string.format("Updated Judar Spears: %d", judarSpearCount))
+    end
+
+    print("Judar Spears are now equal to Judar units. Stopping purchase.")
+end
+
 -- **Log Judar's UUID, Takedowns, and Worthiness**
 local function logJudarInfo()
     local judarData = {}
@@ -133,4 +188,7 @@ else
     else
         warn("No valid Judar found to equip!")
     end
+
+    -- **Ensure we have enough Judar Spears**
+    ensureJudarSpears()
 end
